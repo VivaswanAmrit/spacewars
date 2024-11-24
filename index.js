@@ -166,17 +166,29 @@ class Invader{
         
     }
 
-    shoot(invaderProjectiles){
+shoot(invaderProjectiles){
         invaderProjectiles.push(new InvaderProjectile({
             position:{
-                x: this.position.x+this.width/2,
+                x: this.position.x,
                 y:this.position.y+this.height
             },
             velocity:{
                 x:0,
                 y:5
             }
-        }))
+        }));
+
+        invaderProjectiles.push(new InvaderProjectile({
+            position:{
+                x: this.position.x+this.width,
+                y:this.position.y+this.height
+            },
+            velocity:{
+                x:0,
+                y:5
+            }
+        }));
+
     }
 }
 
@@ -364,9 +376,24 @@ function animate(){
     grids.forEach((grid,gridIndex) => {
         grid.update()
         
-    if(frames%70 ===0 &&grid.invaders.length>0){
-grid.invaders[Math.floor(Math.random()*grid.invaders.length)].shoot(invaderProjectiles)
-    }
+      if (frames % 70 === 0 && grid.invaders.length > 0) {
+            // Number of invaders that will shoot
+            const numShooters = Math.min(3, grid.invaders.length); // Adjust to control how many invaders shoot
+            const shooters = [];
+    
+            // Select unique random invaders
+            while (shooters.length < numShooters) {
+                const randomIndex = Math.floor(Math.random() * grid.invaders.length);
+                if (!shooters.includes(randomIndex)) {
+                    shooters.push(randomIndex);
+                }
+            }
+    
+            // Make selected invaders shoot
+            shooters.forEach((index) => {
+                grid.invaders[index].shoot(invaderProjectiles);
+            });
+        }
         grid.invaders.forEach((invader,i)=>{
             invader.update({velocity:grid.velocity})
 

@@ -174,7 +174,7 @@ shoot(invaderProjectiles){
             },
             velocity:{
                 x:0,
-                y:5
+                y:7
             }
         }));
 
@@ -185,7 +185,7 @@ shoot(invaderProjectiles){
             },
             velocity:{
                 x:0,
-                y:5
+                y:7
             }
         }));
 

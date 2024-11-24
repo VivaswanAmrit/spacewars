@@ -19,7 +19,7 @@ class Player{
 
         this.rotation = 0;
         this.opacity = 1;
-        
+        this.canShoot = false;
 
          const image = new Image();
          image.src='./img/mothership.png';
@@ -471,6 +471,7 @@ addEventListener('keydown',({key})=>{
         break;      
         case ' ':
        // console.log('hit');
+            if(player.canShoot){
         projectiles.push(
             new Projectile({
                 position:{
@@ -483,7 +484,9 @@ addEventListener('keydown',({key})=>{
                 }
             })
         )
+            player.canShoot = false;
         console.log(projectiles)
+    }
         break;
 
     }
@@ -501,6 +504,7 @@ addEventListener('keyup',({key})=>{
         break;      
         case ' ':
      //   console.log('hit');
+            player.canShoot = true;
         break;
 
     }

@@ -272,7 +272,7 @@ const keys = {
 }
 
 let frames =0
-let intervalrnd = Math.floor((Math.random()*500) + 500);
+let intervalrnd = Math.floor((Math.random()*200) + 200)
 let game = {
     over: false,
     active:true
@@ -449,7 +449,7 @@ function animate(){
 
     if(frames% intervalrnd ===0){
         grids.push(new Grid())
-        intervalrnd = Math.floor((Math.random()*500) + 500);
+        intervalrnd = Math.floor((Math.random()*200) + 200);
         frames = 0
     }
 

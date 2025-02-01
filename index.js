@@ -49,6 +49,12 @@ buttonContainer.style.display = 'flex';
 buttonContainer.style.gap = '20px';
 buttonContainer.style.justifyContent = 'center';
 
+// Add an animation ID variable at the top with other game settings
+let animationId = null;
+
+// Add a global variable to store a pending end-screen timeout ID
+let endScreenTimeoutId = null;
+
 // Modify the createDifficultyButton function
 const createDifficultyButton = (text, difficulty) => {
     const button = document.createElement('button');
@@ -107,6 +113,12 @@ let sessionHighScore = 0;
 
 // Modify the start game function
 function startGame(difficulty) {
+    // Cancel any existing animation frame
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    
     switch(difficulty) {
         case 'chill':
             gameSettings = {
@@ -140,6 +152,7 @@ function startGame(difficulty) {
     startScreen.style.display = 'none';
     canvas.style.display = 'block';
     game.active = true;
+    frames = 0;  // Reset frames counter
     animate();
 }
 
@@ -445,8 +458,11 @@ function createParticles({object,color,fades}){
        }   
 }
 function animate(){
-    if(!game.active) return
-    requestAnimationFrame(animate);
+    if(!game.active) {
+        cancelAnimationFrame(animationId);
+        return;
+    }
+    animationId = requestAnimationFrame(animate);
     c.fillStyle = 'black';
     c.fillRect(0,0,canvas.width, canvas.height);
     player.update();
@@ -475,23 +491,31 @@ function animate(){
         invaderProjectile.update()
         }
 
-        if(invaderProjectile.position.y+10>=player.position.y && invaderProjectile.position.x+invaderProjectile.width>=player.position.x&&invaderProjectile.position.x<=player.position.x+player.width){
-            setTimeout(()=>{
+        if(invaderProjectile.position.y + 10 >= player.position.y && 
+           invaderProjectile.position.x + invaderProjectile.width >= player.position.x && 
+           invaderProjectile.position.x <= player.position.x + player.width) {
+            
+            // Immediately set game as inactive to stop updates
+            game.active = false;
+            game.over = true;
+            
+            // Show end screen after a short delay and store its timeout ID
+            endScreenTimeoutId = setTimeout(() => {
                 invaderProjectiles.splice(index, 1);
                 player.opacity = 0;
-                game.over = true;
-            },0);
-
-            setTimeout(()=>{
-                game.active = false;
-                document.body.appendChild(createEndScreen());
-            },1000);
-            
-            createParticles({
-                object:player,
-                color:'cyan',
-                fades : true
-            });
+                
+                // Create particles
+                createParticles({
+                    object: player,
+                    color: 'cyan',
+                    fades: true
+                });
+                
+                // Show end screen after a short delay
+                setTimeout(() => {
+                    document.body.appendChild(createEndScreen());
+                }, 500);
+            }, 0);
         }
     })
     projectiles.forEach((projectile, index) => {
@@ -725,16 +749,35 @@ function createEndScreen() {
 
     // Restart button
     const restartButton = createEndButton('Restart Game', () => {
-        document.body.removeChild(endScreen);
+        // Store current game settings
+        const currentSettings = {...gameSettings};
+        
+        // Reset everything
         resetGame();
+        
+        // Restore game settings
+        gameSettings = currentSettings;
+        
+        // Remove end screen and start game
+        if (document.body.contains(endScreen)) {
+            document.body.removeChild(endScreen);
+        }
+        
+        // Show canvas and start new game
+        canvas.style.display = 'block';
         game.active = true;
         animate();
     });
 
     // Main Menu button
     const menuButton = createEndButton('Main Menu', () => {
-        document.body.removeChild(endScreen);
-        showStartScreen();
+        // Cancel any pending end-screen timeout
+        if (endScreenTimeoutId) {
+            clearTimeout(endScreenTimeoutId);
+            endScreenTimeoutId = null;
+        }
+        // Refresh the page to return to the initial start screen and clear all backend state
+        location.reload();
     });
 
     buttonContainer.appendChild(restartButton);
@@ -745,8 +788,14 @@ function createEndScreen() {
     return endScreen;
 }
 
-// Add reset game function
+// Modify the resetGame function
 function resetGame() {
+    // Cancel any existing animation frame
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    
     // Update session high score
     sessionHighScore = Math.max(sessionHighScore, score);
     
@@ -755,6 +804,7 @@ function resetGame() {
     scoreEt.innerHTML = score;
     game.over = false;
     game.active = false;
+    frames = 0;  // Reset frames counter
     
     // Reset player
     player.opacity = 1;
@@ -782,11 +832,34 @@ function resetGame() {
             color:'white'
         }));
     }
+
+    // Reset all key states
+    keys.a.pressed = false;
+    keys.d.pressed = false;
+    keys.space.pressed = false;
 }
 
-// Add show start screen function
+// Modify the showStartScreen function
 function showStartScreen() {
+    // Cancel any existing animation
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    
+    // Reset game state
     resetGame();
+    
+    // Reset game settings to default
+    gameSettings = {
+        mode: 'standard',
+        alienSpeed: 3,
+        shootersCount: 3,
+        alienSpawnInterval: 200,
+        continuousShooting: false
+    };
+    
+    // Update display
     canvas.style.display = 'none';
     startScreen.style.display = 'flex';
 }

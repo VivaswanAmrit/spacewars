@@ -1,13 +1,149 @@
 const scoreEt = document.querySelector ('#scoreEt');
 const canvas = document.querySelector ('canvas');
 const c = canvas.getContext('2d');
-
+const startScreen = document.createElement('div'); // Create start screen element
 
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
 
+// Start screen styles
+startScreen.style.position = 'fixed';
+startScreen.style.top = '0';
+startScreen.style.left = '0';
+startScreen.style.width = '100%';
+startScreen.style.height = '100%';
+startScreen.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+startScreen.style.display = 'flex';
+startScreen.style.justifyContent = 'center';
+startScreen.style.alignItems = 'center';
+startScreen.style.zIndex = '10';
+startScreen.style.flexDirection = 'column';
+startScreen.style.gap = '30px';
 
+// Add these lines to append startScreen to document and set initial canvas state
+document.body.appendChild(startScreen);
+canvas.style.display = 'none';
+
+let game = {
+    over: false,
+    active: false,
+};
+
+// Create instructions element
+const instructions = document.createElement('div');
+instructions.style.color = 'white';
+instructions.style.fontSize = '24px';
+instructions.style.fontFamily = 'sans-serif';
+instructions.style.textAlign = 'center';
+instructions.innerHTML = `
+    <h2 style="margin-bottom: 20px;">Controls</h2>
+    <p>A - Move Left</p>
+    <p>D - Move Right</p>
+    <p>SPACE - Shoot</p>
+`;
+
+// Create button container for horizontal layout
+const buttonContainer = document.createElement('div');
+buttonContainer.style.display = 'flex';
+buttonContainer.style.gap = '20px';
+buttonContainer.style.justifyContent = 'center';
+
+// Modify the createDifficultyButton function
+const createDifficultyButton = (text, difficulty) => {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.style.padding = '15px 30px';
+    button.style.fontSize = '20px';
+    button.style.color = 'black';
+    button.style.backgroundColor = 'white';
+    button.style.border = '2px solid #007bff';
+    button.style.borderRadius = '5px';
+    button.style.cursor = 'pointer';
+    button.style.fontFamily = 'sans-serif';
+    button.style.transition = 'all 0.3s ease';
+    
+    // Hover effects
+    button.onmouseover = () => {
+        button.style.backgroundColor = '#007bff';
+        button.style.color = 'white';
+    };
+    button.onmouseout = () => {
+        button.style.backgroundColor = 'white';
+        button.style.color = 'black';
+    };
+    
+    button.addEventListener('click', () => startGame(difficulty));
+    return button;
+};
+
+const chillButton = createDifficultyButton('Chill Mode', 'chill');
+const standardButton = createDifficultyButton('Standard Mode', 'standard');
+const ludicrousButton = createDifficultyButton('Ludicrous Mode', 'ludicrous');
+
+// Clear existing content and add new elements in order
+startScreen.innerHTML = '';
+startScreen.appendChild(instructions);
+startScreen.appendChild(buttonContainer);
+
+// Add buttons to the horizontal container instead of directly to startScreen
+buttonContainer.appendChild(chillButton);
+buttonContainer.appendChild(standardButton);
+buttonContainer.appendChild(ludicrousButton);
+
+// Add game settings object
+let gameSettings = {
+    mode: 'standard',
+    alienSpeed: 3,
+    shootersCount: 3,
+    alienSpawnInterval: 200,
+    continuousShooting: false
+};
+
+// Add these variables near the top with other game settings
+let lastShotTime = 0;
+const SHOT_COOLDOWN = 50; // 100ms between shots for faster firing rate
+let sessionHighScore = 0;
+
+// Modify the start game function
+function startGame(difficulty) {
+    switch(difficulty) {
+        case 'chill':
+            gameSettings = {
+                mode: 'chill',
+                alienSpeed: 2,
+                shootersCount: 1,
+                alienSpawnInterval: 300,
+                continuousShooting: true
+            };
+            break;
+        case 'standard':
+            gameSettings = {
+                mode: 'standard',
+                alienSpeed: 3,
+                shootersCount: 3,
+                alienSpawnInterval: 200,
+                continuousShooting: false
+            };
+            break;
+        case 'ludicrous':
+            gameSettings = {
+                mode: 'ludicrous',
+                alienSpeed: 5,
+                shootersCount: 4,
+                alienSpawnInterval: 150,
+                continuousShooting: false
+            };
+            break;
+    }
+    
+    startScreen.style.display = 'none';
+    canvas.style.display = 'block';
+    game.active = true;
+    animate();
+}
+
+game.active= false;
 class Player{
     constructor(){
         
@@ -19,7 +155,7 @@ class Player{
 
         this.rotation = 0;
         this.opacity = 1;
-        this.canShoot = false;
+        this.canShoot = true; 
 
          const image = new Image();
          image.src='./img/mothership.png';
@@ -166,7 +302,7 @@ class Invader{
         
     }
 
-shoot(invaderProjectiles){
+    shoot(invaderProjectiles){
         invaderProjectiles.push(new InvaderProjectile({
             position:{
                 x: this.position.x,
@@ -174,7 +310,7 @@ shoot(invaderProjectiles){
             },
             velocity:{
                 x:0,
-                y:7
+                y:5
             }
         }));
 
@@ -185,7 +321,7 @@ shoot(invaderProjectiles){
             },
             velocity:{
                 x:0,
-                y:7
+                y:5
             }
         }));
 
@@ -200,8 +336,8 @@ class Grid{
         }
 
         this.velocity = {
-            x:3,
-            y:0
+            x: gameSettings.alienSpeed,
+            y: 0
         }
         this.invaders=[]
 
@@ -272,11 +408,8 @@ const keys = {
 }
 
 let frames =0
-let intervalrnd = Math.floor((Math.random()*200) + 100)
-let game = {
-    over: false,
-    active:true
-}
+let intervalrnd = Math.floor((Math.random()*200) + 200);
+
 
 let score = 0
 for(let i = 0; i<100; i++){
@@ -344,20 +477,21 @@ function animate(){
 
         if(invaderProjectile.position.y+10>=player.position.y && invaderProjectile.position.x+invaderProjectile.width>=player.position.x&&invaderProjectile.position.x<=player.position.x+player.width){
             setTimeout(()=>{
-                invaderProjectiles.splice(index, 1)
-                player.opacity = 0,
-                game.over = true
-            },0)
+                invaderProjectiles.splice(index, 1);
+                player.opacity = 0;
+                game.over = true;
+            },0);
 
             setTimeout(()=>{
-                game.active = false
-            },1000)
-            console.log('mothership is down')
+                game.active = false;
+                document.body.appendChild(createEndScreen());
+            },1000);
+            
             createParticles({
                 object:player,
                 color:'cyan',
                 fades : true
-            })
+            });
         }
     })
     projectiles.forEach((projectile, index) => {
@@ -376,20 +510,17 @@ function animate(){
     grids.forEach((grid,gridIndex) => {
         grid.update()
         
-      if (frames % 70 === 0 && grid.invaders.length > 0) {
-            // Number of invaders that will shoot
-            const numShooters = Math.min(3, grid.invaders.length); // Adjust to control how many invaders shoot
+        if (frames % 70 === 0 && grid.invaders.length > 0) {
+            const numShooters = Math.min(gameSettings.shootersCount, grid.invaders.length);
             const shooters = [];
-    
-            // Select unique random invaders
+
             while (shooters.length < numShooters) {
                 const randomIndex = Math.floor(Math.random() * grid.invaders.length);
                 if (!shooters.includes(randomIndex)) {
                     shooters.push(randomIndex);
                 }
             }
-    
-            // Make selected invaders shoot
+
             shooters.forEach((index) => {
                 grid.invaders[index].shoot(invaderProjectiles);
             });
@@ -447,10 +578,29 @@ function animate(){
         player.rotation = 0;
     }
 
-    if(frames% intervalrnd ===0){
+    if(frames % Math.floor(gameSettings.alienSpawnInterval) === 0){
         grids.push(new Grid())
-        intervalrnd = Math.floor((Math.random()*200) + 100);
+        intervalrnd = Math.floor((Math.random() * gameSettings.alienSpawnInterval) + gameSettings.alienSpawnInterval);
         frames = 0
+    }
+
+    if(gameSettings.continuousShooting && keys.space.pressed && player.canShoot) {
+        const currentTime = Date.now();
+        if (currentTime - lastShotTime >= SHOT_COOLDOWN) {
+            projectiles.push(
+                new Projectile({
+                    position:{
+                        x:player.position.x+player.width/2,
+                        y:player.position.y
+                    },
+                    velocity:{
+                        x:0,
+                        y:-10
+                    }
+                })
+            )
+            lastShotTime = currentTime;
+        }
     }
 
     frames++
@@ -461,51 +611,182 @@ animate()
 addEventListener('keydown',({key})=>{
     if(game.over) return
     switch (key){
-        case'a':
-      //  console.log('left');
-        keys.a.pressed = true
-        break;
+        case 'a':
+            keys.a.pressed = true
+            break;
         case 'd':
-      //  console.log('right');
-        keys.d.pressed = true
-        break;      
+            keys.d.pressed = true
+            break;      
         case ' ':
-       // console.log('hit');
-            if(player.canShoot){
-        projectiles.push(
-            new Projectile({
-                position:{
-                    x:player.position.x+player.width/2,
-                    y:player.position.y
-                },
-                velocity:{
-                    x:0,
-                    y:-10
+            keys.space.pressed = true;
+            const currentTime = Date.now();
+            if((gameSettings.continuousShooting || player.canShoot) && 
+               currentTime - lastShotTime >= SHOT_COOLDOWN) {
+                projectiles.push(
+                    new Projectile({
+                        position:{
+                            x:player.position.x+player.width/2,
+                            y:player.position.y
+                        },
+                        velocity:{
+                            x:0,
+                            y:-10
+                        }
+                    })
+                )
+                lastShotTime = currentTime;
+                if(!gameSettings.continuousShooting) {
+                    player.canShoot = false;
                 }
-            })
-        )
-            player.canShoot = false;
-        console.log(projectiles)
-    }
-        break;
-
+            }
+            break;
     }
 });
 
 addEventListener('keyup',({key})=>{
     switch (key){
-        case'a':
-       // console.log('left');
-        keys.a.pressed = false
-        break;
+        case 'a':
+            keys.a.pressed = false
+            break;
         case 'd':
-      //  console.log('right');
-        keys.d.pressed = false
-        break;      
+            keys.d.pressed = false
+            break;      
         case ' ':
-     //   console.log('hit');
-            player.canShoot = true;
-        break;
-
+            keys.space.pressed = false;
+            if(!gameSettings.continuousShooting) {
+                player.canShoot = true;
+            }
+            break;
     }
 });
+
+// Add end screen creation function
+function createEndScreen() {
+    const endScreen = document.createElement('div');
+    
+    // End screen styles
+    endScreen.style.position = 'fixed';
+    endScreen.style.top = '0';
+    endScreen.style.left = '0';
+    endScreen.style.width = '100%';
+    endScreen.style.height = '100%';
+    endScreen.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    endScreen.style.display = 'flex';
+    endScreen.style.flexDirection = 'column';
+    endScreen.style.justifyContent = 'center';
+    endScreen.style.alignItems = 'center';
+    endScreen.style.gap = '20px';
+    endScreen.style.zIndex = '10';
+
+    // Score display
+    const scoreDisplay = document.createElement('div');
+    scoreDisplay.style.color = 'white';
+    scoreDisplay.style.fontSize = '24px';
+    scoreDisplay.style.fontFamily = 'sans-serif';
+    scoreDisplay.style.textAlign = 'center';
+    scoreDisplay.innerHTML = `
+        <h2 style="color: #ff4444; font-size: 32px; margin-bottom: 20px;">Game Over</h2>
+        <p>Current Score: ${score}</p>
+        <p>Session High Score: ${sessionHighScore}</p>
+    `;
+
+    // Button container
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '20px';
+    buttonContainer.style.marginTop = '20px';
+
+    // Create buttons with same style as difficulty buttons
+    const createEndButton = (text, onClick) => {
+        const button = document.createElement('button');
+        button.textContent = text;
+        button.style.padding = '15px 30px';
+        button.style.fontSize = '20px';
+        button.style.color = 'black';
+        button.style.backgroundColor = 'white';
+        button.style.border = '2px solid #007bff';
+        button.style.borderRadius = '5px';
+        button.style.cursor = 'pointer';
+        button.style.fontFamily = 'sans-serif';
+        button.style.transition = 'all 0.3s ease';
+        
+        button.onmouseover = () => {
+            button.style.backgroundColor = '#007bff';
+            button.style.color = 'white';
+        };
+        button.onmouseout = () => {
+            button.style.backgroundColor = 'white';
+            button.style.color = 'black';
+        };
+        
+        button.addEventListener('click', onClick);
+        return button;
+    };
+
+    // Restart button
+    const restartButton = createEndButton('Restart Game', () => {
+        document.body.removeChild(endScreen);
+        resetGame();
+        game.active = true;
+        animate();
+    });
+
+    // Main Menu button
+    const menuButton = createEndButton('Main Menu', () => {
+        document.body.removeChild(endScreen);
+        showStartScreen();
+    });
+
+    buttonContainer.appendChild(restartButton);
+    buttonContainer.appendChild(menuButton);
+    endScreen.appendChild(scoreDisplay);
+    endScreen.appendChild(buttonContainer);
+
+    return endScreen;
+}
+
+// Add reset game function
+function resetGame() {
+    // Update session high score
+    sessionHighScore = Math.max(sessionHighScore, score);
+    
+    // Reset game state
+    score = 0;
+    scoreEt.innerHTML = score;
+    game.over = false;
+    game.active = false;
+    
+    // Reset player
+    player.opacity = 1;
+    player.position.x = canvas.width/2 - player.width/2;
+    player.position.y = canvas.height - player.height - 20;
+    
+    // Clear arrays
+    projectiles.length = 0;
+    grids.length = 0;
+    invaderProjectiles.length = 0;
+    
+    // Reset particles (keep background stars)
+    particles.length = 0;
+    for(let i = 0; i<100; i++){
+        particles.push(new Particle({
+            position:{
+                x:Math.random() * canvas.width,
+                y:Math.random() * canvas.height
+            },
+            velocity:{
+                x:0,
+                y:0.3
+            },
+            radius:Math.random()*2,
+            color:'white'
+        }));
+    }
+}
+
+// Add show start screen function
+function showStartScreen() {
+    resetGame();
+    canvas.style.display = 'none';
+    startScreen.style.display = 'flex';
+}
